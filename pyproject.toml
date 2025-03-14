@@ -1,0 +1,13 @@
+[project]
+name = "fy-realtime"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "boto3>=1.37.11",
+    "h5py>=3.13.0",
+    "opencv-python>=4.11.0.86",
+    "pytz>=2025.1",
+    "requests>=2.32.3",
+]
