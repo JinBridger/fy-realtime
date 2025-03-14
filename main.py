@@ -35,6 +35,6 @@ if __name__ == "__main__":
     main(
         download_cookie=_download_cookie,
         upload_endpoint_url=_upload_endpoint_url,
-        upload_access_key=_upload_endpoint_url,
+        upload_access_key=_upload_access_key,
         upload_secret_key=_upload_secret_key
     )

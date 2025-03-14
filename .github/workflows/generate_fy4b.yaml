@@ -1,0 +1,34 @@
+name: Generate FY4B image
+
+on:
+  schedule:
+    - cron: '5/15 * * * *'
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-fy4b:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "0.6.6"
+
+    - name: Set up Python
+      run: uv python install
+
+    - name: Install the project
+      run: uv sync --all-extras --dev
+
+    - name: Run script
+      env:
+        UPLOAD_ACCESS_KEY: ${{ secrets.UPLOAD_ACCESS_KEY }}
+        UPLOAD_ENDPOINT_URL: ${{ secrets.UPLOAD_ENDPOINT_URL }}
+        UPLOAD_SECRET_KEY: ${{ secrets.UPLOAD_SECRET_KEY }}
+        DOWNLOAD_COOKIE: ${{ secrets.DOWNLOAD_COOKIE }}
+      run: uv run main.py
