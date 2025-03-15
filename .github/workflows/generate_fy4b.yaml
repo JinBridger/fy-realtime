@@ -1,6 +1,7 @@
 name: Generate FY4B image
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '5/15 * * * *'
   push:
@@ -13,6 +14,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Set up node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - run: npm install
 
     - name: Install uv
       uses: astral-sh/setup-uv@v4
@@ -30,5 +38,6 @@ jobs:
         UPLOAD_ACCESS_KEY: ${{ secrets.UPLOAD_ACCESS_KEY }}
         UPLOAD_ENDPOINT_URL: ${{ secrets.UPLOAD_ENDPOINT_URL }}
         UPLOAD_SECRET_KEY: ${{ secrets.UPLOAD_SECRET_KEY }}
-        DOWNLOAD_COOKIE: ${{ secrets.DOWNLOAD_COOKIE }}
+        DOWNLOAD_USERNAME: ${{ secrets.DOWNLOAD_USERNAME }}
+        DOWNLOAD_PASSWORD: ${{ secrets.DOWNLOAD_PASSWORD }}
       run: uv run main.py

@@ -12,3 +12,6 @@ wheels/
 *.jpg
 *.HDF
 .vscode
+env.bash
+encrypt_modified.js
+node_modules/

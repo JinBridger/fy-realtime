@@ -1,18 +1,27 @@
 """Download L1 Data from NSMC"""
 
 import datetime
+import os
+import re
+import urllib
+
+import ddddocr
 import pytz
 import requests
+
 
 class Download:
     """Download L1 Data from NSMC"""
 
-    def __init__(self, cookie: str):
-        self.cookie = cookie
+    def __init__(self, username: str, password: str):
+        self.username = username
+        self.password = password
+        self.session = requests.session()
 
     def download_latest_data(self):
         """Download latest data"""
         print("START DOWNLOAD LATEST DATA...")
+        self._login(self.username, self.password)
         data = self._list_available_data()
         if data:
             filename = data[0]["ARCHIVENAME"]
@@ -20,6 +29,61 @@ class Download:
             self._download_data(filename, output_path)
             print("FINISH DOWNLOAD LATEST DATA!")
             return filename
+
+    def _login(self, username: str, password: str):
+        """Login to NSMC"""
+        print("START LOG IN NSMC")
+        url = (
+            "https://satellite.nsmc.org.cn/DataPortal/v1/data/user/login?"
+            "newurl=https://satellite.nsmc.org.cn/DataPortal/cn/home/index.html"
+        )
+        response = self.session.get(url, timeout=10)
+        relocate_url = response.url
+        html_content = response.text
+        validate_code_response = self.session.get(
+            "https://fy4.nsmc.org.cn/center/v1/user/validateCode", timeout=10
+        )
+        with open("validateCode.jpg", "wb") as file:
+            file.write(validate_code_response.content)
+
+        ocr = ddddocr.DdddOcr()
+        with open(r"./validateCode.jpg", "rb") as f:
+            img_bytes = f.read()
+        validate_code = ocr.classification(img_bytes)
+
+        key_cn = urllib.parse.unquote(
+            re.search(
+                r'id=["\']keyCN["\'][^>]*value=["\']([^"\']+)["\']', html_content
+            ).group(1)
+        )
+
+        params = relocate_url.split("?")[1].split("&")
+        lk = urllib.parse.unquote(params[0].split("=")[1])
+        rd = urllib.parse.unquote(params[1].split("=")[1])
+
+        payload = {
+            "loginKey": lk,
+            "sourceURL": rd,
+            "thePassword": self.encrypt_password(key=key_cn, passwd=password),
+            "userName": username,
+            "validateCode": validate_code,
+        }
+
+        commit_url = "https://fy4.nsmc.org.cn/center/v1/user/commit"
+        response = self.session.post(commit_url, json=payload, timeout=10)
+
+    def encrypt_password(self, key, passwd):
+        """Get encrypted password"""
+        with open("encrypt.js", "r", encoding="utf-8") as file:
+            encrypt_js = file.read()
+        encrypt_js = encrypt_js.replace("%KEY%", key)
+        encrypt_js = encrypt_js.replace("%PASSWD%", passwd)
+        with open("encrypt_modified.js", "w", encoding="utf-8") as file:
+            file.write(encrypt_js)
+
+        # exec 'node encrypt.js' and get result
+        result = os.popen("node encrypt_modified.js").read()[:-1]
+        return result
 
     def _list_available_data(self):
         """List available data"""
@@ -54,11 +118,8 @@ class Download:
             "&periodTime="
             "&daynight="
         )
-        headers = {
-            "Cookie": self.cookie,
-        }
 
-        response = requests.get(url, headers=headers, timeout=10)
+        response = self.session.get(url, timeout=10)
         response.raise_for_status()
         return response.json()["resource"]
 
@@ -70,13 +131,10 @@ class Download:
             f"{filename}"
             "/download/status?downloadSource=NewPortalCH"
         )
-        headers = {
-            "Cookie": self.cookie,
-        }
-        response = requests.get(url, headers=headers, timeout=10)
+        response = self.session.get(url, timeout=10)
         response.raise_for_status()
         real_url = response.json()["resource"]
-        response = requests.get(real_url, headers=headers, timeout=10)
+        response = self.session.get(real_url, timeout=10)
         response.raise_for_status()
         with open(output_path, "wb") as file:
             file.write(response.content)

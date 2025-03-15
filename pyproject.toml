@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "boto3>=1.37.11",
+    "ddddocr>=1.5.6",
     "h5py>=3.13.0",
     "opencv-python>=4.11.0.86",
     "pytz>=2025.1",
